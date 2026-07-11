@@ -1,38 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import { FiFilter, FiPackage } from 'react-icons/fi';
+import { FiFilter, FiPackage, FiSearch } from 'react-icons/fi';
 import PackageCard from '../../components/PackageCard/PackageCard';
-import SearchBar from '../../components/SearchBar/SearchBar';
-import { packages, packageCategories } from '../../data/packages';
+import { packagesAPI } from '../../services/api';
+
+const CATEGORIES = ['All', 'Heritage', 'Beach', 'Nature', 'Wildlife', 'Grand Tour', 'Romantic', 'Wellness', 'Adventure', 'Family', 'Photography'];
 
 const Packages = () => {
+  const [packages, setPackages] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [sortBy, setSortBy] = useState('popular');
-  const [filtered, setFiltered] = useState(packages);
+
+  useEffect(() => {
+    const fetchPackages = async () => {
+      setLoading(true);
+      try {
+        const res = await packagesAPI.getAll();
+        const data = res.data.data || [];
+        setPackages(data);
+        setFiltered(data);
+      } catch {
+        setError('Failed to load packages. Make sure the backend is running.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPackages();
+  }, []);
 
   useEffect(() => {
     let result = [...packages];
     if (query.trim()) {
       const q = query.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.tagline.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.destinations?.some((d) => d.toLowerCase().includes(q))
+      result = result.filter(p =>
+        p.title?.toLowerCase().includes(q) ||
+        p.tagline?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q)
       );
     }
-    if (activeCategory !== 'All') result = result.filter((p) => p.category === activeCategory);
+    if (activeCategory !== 'All') result = result.filter(p => p.category === activeCategory);
     if (sortBy === 'price-asc') result.sort((a, b) => a.price - b.price);
     else if (sortBy === 'price-desc') result.sort((a, b) => b.price - a.price);
     else if (sortBy === 'duration') result.sort((a, b) => a.duration - b.duration);
     else result.sort((a, b) => (b.popular ? 1 : 0) - (a.popular ? 1 : 0));
     setFiltered(result);
-  }, [query, activeCategory, sortBy]);
+  }, [query, activeCategory, sortBy, packages]);
+
+  // Map backend DTO to card shape
+  const mapPackage = (p) => ({
+    id: p.id,
+    name: p.title,
+    title: p.title,
+    tagline: p.tagline,
+    image: p.imageUrl,
+    duration: p.duration,
+    durationUnit: p.durationUnit || 'days',
+    groupSize: p.groupSize,
+    price: p.price,
+    originalPrice: p.originalPrice,
+    currency: 'USD',
+    category: p.category,
+    rating: p.rating,
+    reviewCount: p.reviewCount,
+    highlights: [],
+    badge: p.badge,
+    featured: p.featured,
+    popular: p.popular,
+  });
 
   return (
     <>
-      {/* Hero */}
       <section className="relative pt-32 pb-16 bg-gradient-to-br from-primary via-primary-600 to-secondary-800 overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 right-10 w-72 h-72 rounded-full border-2 border-white" />
@@ -44,21 +84,27 @@ const Packages = () => {
           </div>
           <h1 className="text-4xl md:text-5xl font-bold font-poppins text-white mb-4">Travel Packages</h1>
           <p className="text-gray-300 font-inter text-lg max-w-xl mx-auto mb-8">
-            All-inclusive Sri Lanka travel packages designed for every type of traveler. Choose yours and let's go!
+            All-inclusive Sri Lanka travel packages designed for every type of traveler.
           </p>
-          <div className="max-w-xl mx-auto">
-            <SearchBar placeholder="Search packages..." initialValue={query} onSearch={setQuery} />
+          <div className="max-w-xl mx-auto relative">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search packages..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-4 rounded-2xl bg-white text-primary placeholder-gray-400 font-inter text-sm focus:outline-none focus:ring-2 focus:ring-accent shadow-lg"
+            />
           </div>
         </div>
       </section>
 
       <section className="section-padding bg-background">
         <div className="container-custom">
-          {/* Controls */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div className="flex items-center gap-3 flex-wrap">
               <FiFilter className="text-gray-400 shrink-0" />
-              {packageCategories.slice(0, 7).map((cat) => (
+              {CATEGORIES.slice(0, 7).map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
@@ -72,7 +118,7 @@ const Packages = () => {
                 </button>
               ))}
             </div>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="input-field w-auto text-sm py-2 pr-8">
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field w-auto text-sm py-2">
               <option value="popular">Most Popular</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
@@ -80,11 +126,23 @@ const Packages = () => {
             </select>
           </div>
 
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6 font-inter text-sm">{error}</div>
+          )}
+
           <p className="text-gray-500 text-sm font-inter mb-6">{filtered.length} package{filtered.length !== 1 ? 's' : ''} found</p>
 
-          {filtered.length > 0 ? (
+          {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((pkg) => <PackageCard key={pkg.id} pkg={pkg} />)}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl h-80 animate-pulse" />
+              ))}
+            </div>
+          ) : filtered.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map(pkg => (
+                <PackageCard key={pkg.id} pkg={mapPackage(pkg)} />
+              ))}
             </div>
           ) : (
             <div className="text-center py-20">

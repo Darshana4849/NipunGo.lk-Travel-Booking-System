@@ -4,6 +4,7 @@ import {
   FiMenu, FiX, FiGlobe, FiMapPin, FiHome,
   FiPackage, FiPhone, FiGrid, FiUser,
   FiLogOut, FiBookOpen, FiSettings, FiChevronDown,
+  FiShield,
 } from 'react-icons/fi';
 
 const navLinks = [
@@ -26,9 +27,9 @@ const Navbar = () => {
   const isHome = pathname === '/home';
   const isTransparent = isHome && !scrolled;
 
-  // Get user from localStorage
   const userStr = localStorage.getItem('nipungo_user');
   const user = userStr ? JSON.parse(userStr) : null;
+  const isAdmin = user?.role === 'ROLE_ADMIN';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -36,12 +37,8 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    setIsOpen(false);
-    setShowAccount(false);
-  }, [pathname]);
+  useEffect(() => { setIsOpen(false); setShowAccount(false); }, [pathname]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -59,19 +56,14 @@ const Navbar = () => {
     navigate('/welcome');
   };
 
-  // User initials for avatar
   const initials = user
     ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase()
     : 'U';
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isTransparent
-          ? 'bg-transparent'
-          : 'bg-white/95 backdrop-blur-md shadow-nav border-b border-gray-100'
-      }`}
-    >
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      isTransparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-md shadow-nav border-b border-gray-100'
+    }`}>
       <div className="container-custom">
         <div className="flex items-center justify-between h-16 md:h-20">
 
@@ -92,7 +84,7 @@ const Navbar = () => {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {navLinks.map(link => (
               <NavLink
                 key={link.path}
                 to={link.path}
@@ -116,12 +108,9 @@ const Navbar = () => {
                 <button
                   onClick={() => setShowAccount(!showAccount)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
-                    isTransparent
-                      ? 'hover:bg-white/10 text-white'
-                      : 'hover:bg-gray-50 text-gray-700'
+                    isTransparent ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-50 text-gray-700'
                   }`}
                 >
-                  {/* Avatar */}
                   <div className="w-8 h-8 rounded-lg bg-gradient-accent flex items-center justify-center text-white text-xs font-bold font-poppins">
                     {initials}
                   </div>
@@ -129,43 +118,33 @@ const Navbar = () => {
                   <FiChevronDown className={`text-xs transition-transform duration-200 ${showAccount ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Dropdown Menu */}
                 {showAccount && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-card-hover border border-gray-100 overflow-hidden animate-slide-down">
                     {/* User Info */}
                     <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                      <p className="font-semibold font-poppins text-primary text-sm">
-                        {user.firstName} {user.lastName}
-                      </p>
+                      <p className="font-semibold font-poppins text-primary text-sm">{user.firstName} {user.lastName}</p>
                       <p className="text-gray-400 font-inter text-xs truncate">{user.email}</p>
-                      {user.role === 'ROLE_ADMIN' && (
-                        <span className="badge-primary text-xs mt-1 inline-block">Admin</span>
+                      {isAdmin && <span className="badge-primary text-xs mt-1 inline-block">Admin</span>}
+                    </div>
+
+                    <div className="py-1">
+                      <Link to="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm font-inter text-gray-600 hover:bg-gray-50 hover:text-secondary transition-colors">
+                        <FiGrid className="text-gray-400" /> Dashboard
+                      </Link>
+                      <Link to="/bookings" className="flex items-center gap-3 px-4 py-2.5 text-sm font-inter text-gray-600 hover:bg-gray-50 hover:text-secondary transition-colors">
+                        <FiBookOpen className="text-gray-400" /> My Bookings
+                      </Link>
+                      <Link to="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm font-inter text-gray-600 hover:bg-gray-50 hover:text-secondary transition-colors">
+                        <FiSettings className="text-gray-400" /> Edit Profile
+                      </Link>
+                      {/* Admin Panel Link */}
+                      {isAdmin && (
+                        <Link to="/admin" className="flex items-center gap-3 px-4 py-2.5 text-sm font-inter text-accent hover:bg-accent/5 transition-colors">
+                          <FiShield className="text-accent" /> Admin Panel
+                        </Link>
                       )}
                     </div>
 
-                    {/* Menu Items */}
-                    <div className="py-1">
-                      <Link
-                        to="/dashboard"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-inter text-gray-600 hover:bg-gray-50 hover:text-secondary transition-colors"
-                      >
-                        <FiGrid className="text-gray-400" /> Dashboard
-                      </Link>
-                      <Link
-                        to="/bookings"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-inter text-gray-600 hover:bg-gray-50 hover:text-secondary transition-colors"
-                      >
-                        <FiBookOpen className="text-gray-400" /> My Bookings
-                      </Link>
-                      <Link
-                        to="/profile"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-inter text-gray-600 hover:bg-gray-50 hover:text-secondary transition-colors"
-                      >
-                        <FiSettings className="text-gray-400" /> Edit Profile
-                      </Link>
-                    </div>
-
-                    {/* Logout */}
                     <div className="border-t border-gray-100 py-1">
                       <button
                         onClick={handleLogout}
@@ -178,19 +157,13 @@ const Navbar = () => {
                 )}
               </div>
             ) : (
-              /* Not logged in — show login/register */
               <>
-                <Link
-                  to="/login"
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium font-inter rounded-lg transition-all duration-200 ${
-                    isTransparent ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-secondary hover:bg-gray-50'
-                  }`}
-                >
+                <Link to="/login" className={`flex items-center gap-2 px-4 py-2 text-sm font-medium font-inter rounded-lg transition-all duration-200 ${
+                  isTransparent ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-secondary hover:bg-gray-50'
+                }`}>
                   <FiUser className="text-base" /> Sign In
                 </Link>
-                <Link to="/register" className="btn-primary text-sm px-5 py-2.5">
-                  Get Started
-                </Link>
+                <Link to="/register" className="btn-primary text-sm px-5 py-2.5">Get Started</Link>
               </>
             )}
           </div>
@@ -210,7 +183,7 @@ const Navbar = () => {
       {/* Mobile Menu */}
       <div className={`md:hidden overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'} bg-white border-t border-gray-100`}>
         <div className="container-custom py-4 space-y-1">
-          {navLinks.map((link) => (
+          {navLinks.map(link => (
             <NavLink
               key={link.path}
               to={link.path}
@@ -225,11 +198,9 @@ const Navbar = () => {
             </NavLink>
           ))}
 
-          {/* Mobile Account Section */}
           <div className="pt-3 border-t border-gray-100">
             {user ? (
               <>
-                {/* User Info */}
                 <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl mb-2">
                   <div className="w-10 h-10 rounded-xl bg-gradient-accent flex items-center justify-center text-white text-sm font-bold font-poppins">
                     {initials}
@@ -239,19 +210,13 @@ const Navbar = () => {
                     <p className="text-gray-400 text-xs font-inter">{user.email}</p>
                   </div>
                 </div>
-                <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-gray-600 hover:bg-gray-50">
-                  <FiGrid /> Dashboard
-                </Link>
-                <Link to="/bookings" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-gray-600 hover:bg-gray-50">
-                  <FiBookOpen /> My Bookings
-                </Link>
-                <Link to="/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-gray-600 hover:bg-gray-50">
-                  <FiSettings /> Edit Profile
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-red-500 hover:bg-red-50"
-                >
+                <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-gray-600 hover:bg-gray-50"><FiGrid /> Dashboard</Link>
+                <Link to="/bookings" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-gray-600 hover:bg-gray-50"><FiBookOpen /> My Bookings</Link>
+                <Link to="/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-gray-600 hover:bg-gray-50"><FiSettings /> Edit Profile</Link>
+                {isAdmin && (
+                  <Link to="/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-accent hover:bg-accent/5"><FiShield /> Admin Panel</Link>
+                )}
+                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-inter text-red-500 hover:bg-red-50">
                   <FiLogOut /> Sign Out
                 </button>
               </>
@@ -260,9 +225,7 @@ const Navbar = () => {
                 <Link to="/login" className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium font-inter text-gray-600 hover:text-secondary hover:bg-gray-50 rounded-xl">
                   <FiUser /> Sign In
                 </Link>
-                <Link to="/register" className="btn-primary text-sm text-center">
-                  Get Started Free
-                </Link>
+                <Link to="/register" className="btn-primary text-sm text-center">Get Started Free</Link>
               </div>
             )}
           </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FiArrowRight, FiMapPin, FiShield, FiHeadphones,
@@ -12,31 +12,13 @@ import PackageCard from '../../components/PackageCard/PackageCard';
 import Testimonials from '../../components/Testimonials/Testimonials';
 import Newsletter from '../../components/Newsletter/Newsletter';
 
-import { getFeaturedDestinations } from '../../data/destinations';
-import { getFeaturedHotels } from '../../data/hotels';
-import { getFeaturedPackages } from '../../data/packages';
+import { destinationsAPI, hotelsAPI, packagesAPI } from '../../services/api';
 
 const features = [
-  {
-    icon: <FiZap className="text-2xl text-accent" />,
-    title: 'AI-Powered Planning',
-    desc: 'Get personalized itineraries and recommendations powered by advanced AI technology.',
-  },
-  {
-    icon: <FiShield className="text-2xl text-accent" />,
-    title: 'Secure Booking',
-    desc: 'Your payments and personal data are protected with industry-leading encryption.',
-  },
-  {
-    icon: <FiHeadphones className="text-2xl text-accent" />,
-    title: '24/7 Support',
-    desc: 'Our travel experts are available around the clock to assist you at any time.',
-  },
-  {
-    icon: <FiAward className="text-2xl text-accent" />,
-    title: 'Best Price Guarantee',
-    desc: 'Found a lower price? We\'ll match it and give you an extra 5% off.',
-  },
+  { icon: <FiZap className="text-2xl text-accent" />, title: 'AI-Powered Planning', desc: 'Get personalized itineraries and recommendations powered by advanced AI technology.' },
+  { icon: <FiShield className="text-2xl text-accent" />, title: 'Secure Booking', desc: 'Your payments and personal data are protected with industry-leading encryption.' },
+  { icon: <FiHeadphones className="text-2xl text-accent" />, title: '24/7 Support', desc: 'Our travel experts are available around the clock to assist you at any time.' },
+  { icon: <FiAward className="text-2xl text-accent" />, title: 'Best Price Guarantee', desc: "Found a lower price? We'll match it and give you an extra 5% off." },
 ];
 
 const SectionHeader = ({ badge, title, subtitle, cta, ctaPath }) => (
@@ -52,10 +34,7 @@ const SectionHeader = ({ badge, title, subtitle, cta, ctaPath }) => (
       {subtitle && <p className="section-subtitle">{subtitle}</p>}
     </div>
     {cta && ctaPath && (
-      <Link
-        to={ctaPath}
-        className="flex items-center gap-2 text-secondary font-semibold font-inter text-sm hover:gap-3 transition-all duration-200 shrink-0"
-      >
+      <Link to={ctaPath} className="flex items-center gap-2 text-secondary font-semibold font-inter text-sm hover:gap-3 transition-all shrink-0">
         {cta} <FiArrowRight />
       </Link>
     )}
@@ -63,9 +42,65 @@ const SectionHeader = ({ badge, title, subtitle, cta, ctaPath }) => (
 );
 
 const Home = () => {
-  const featuredDests = getFeaturedDestinations();
-  const featuredHotels = getFeaturedHotels().slice(0, 4);
-  const featuredPackages = getFeaturedPackages().slice(0, 3);
+  const [featuredDests, setFeaturedDests] = useState([]);
+  const [featuredHotels, setFeaturedHotels] = useState([]);
+  const [featuredPackages, setFeaturedPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      setLoading(true);
+      try {
+        const [dRes, hRes, pRes] = await Promise.all([
+          destinationsAPI.getFeatured(),
+          hotelsAPI.getFeatured(),
+          packagesAPI.getFeatured(),
+        ]);
+        setFeaturedDests(dRes.data.data || []);
+        setFeaturedHotels((hRes.data.data || []).slice(0, 4));
+        setFeaturedPackages((pRes.data.data || []).slice(0, 3));
+      } catch (err) {
+        console.error('Failed to load home data', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, []);
+
+  // Map backend DTOs to card shapes
+  const mapDest = (d) => ({
+    id: d.id, name: d.name, province: d.district,
+    tagline: d.tagline, image: d.imageUrl,
+    rating: d.rating, reviewCount: d.reviewCount,
+    category: d.category, duration: d.duration,
+    featured: d.featured,
+  });
+
+  const mapHotel = (h) => ({
+    id: h.id, name: h.name, location: h.location,
+    image: h.imageUrl, rating: h.rating,
+    reviewCount: h.reviewCount, pricePerNight: h.pricePerNight,
+    stars: h.stars, category: h.category, amenities: [],
+  });
+
+  const mapPackage = (p) => ({
+    id: p.id, name: p.title, title: p.title,
+    tagline: p.tagline, image: p.imageUrl,
+    duration: p.duration, durationUnit: p.durationUnit || 'days',
+    groupSize: p.groupSize, price: p.price,
+    originalPrice: p.originalPrice, category: p.category,
+    rating: p.rating, reviewCount: p.reviewCount,
+    highlights: [], badge: p.badge,
+  });
+
+  const Skeleton = ({ count, h }) => (
+    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${count === 4 ? '4' : count === 3 ? '3' : '3'} gap-6`}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className={`bg-white rounded-2xl ${h} animate-pulse`} />
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -75,7 +110,7 @@ const Home = () => {
       <section className="bg-white border-b border-gray-100 py-10">
         <div className="container-custom">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((f) => (
+            {features.map(f => (
               <div key={f.title} className="flex items-start gap-4 group">
                 <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors">
                   {f.icon}
@@ -93,58 +128,40 @@ const Home = () => {
       {/* Popular Destinations */}
       <section className="section-padding bg-background">
         <div className="container-custom">
-          <SectionHeader
-            badge="Must-Visit Places"
-            title="Popular Destinations"
-            subtitle="Discover the most breathtaking locations across the Pearl of the Indian Ocean."
-            cta="View All Destinations"
-            ctaPath="/destinations"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredDests.slice(0, 6).map((dest) => (
-              <DestinationCard key={dest.id} destination={dest} />
-            ))}
-          </div>
+          <SectionHeader badge="Must-Visit Places" title="Popular Destinations" subtitle="Discover the most breathtaking locations across Sri Lanka." cta="View All Destinations" ctaPath="/destinations" />
+          {loading ? <Skeleton count={6} h="h-64" /> : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredDests.map(d => <DestinationCard key={d.id} destination={mapDest(d)} />)}
+            </div>
+          )}
         </div>
       </section>
 
       {/* Featured Hotels */}
       <section className="section-padding bg-white">
         <div className="container-custom">
-          <SectionHeader
-            badge="Where to Stay"
-            title="Featured Hotels"
-            subtitle="Hand-picked luxury and boutique hotels for an unforgettable stay."
-            cta="Browse All Hotels"
-            ctaPath="/hotels"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredHotels.map((hotel) => (
-              <HotelCard key={hotel.id} hotel={hotel} />
-            ))}
-          </div>
+          <SectionHeader badge="Where to Stay" title="Featured Hotels" subtitle="Hand-picked luxury and boutique hotels for an unforgettable stay." cta="Browse All Hotels" ctaPath="/hotels" />
+          {loading ? <Skeleton count={4} h="h-72" /> : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredHotels.map(h => <HotelCard key={h.id} hotel={mapHotel(h)} />)}
+            </div>
+          )}
         </div>
       </section>
 
       {/* Travel Packages */}
       <section className="section-padding bg-background">
         <div className="container-custom">
-          <SectionHeader
-            badge="Curated Experiences"
-            title="Travel Packages"
-            subtitle="All-inclusive packages designed for every type of traveler."
-            cta="View All Packages"
-            ctaPath="/packages"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredPackages.map((pkg) => (
-              <PackageCard key={pkg.id} pkg={pkg} />
-            ))}
-          </div>
+          <SectionHeader badge="Curated Experiences" title="Travel Packages" subtitle="All-inclusive packages designed for every type of traveler." cta="View All Packages" ctaPath="/packages" />
+          {loading ? <Skeleton count={3} h="h-80" /> : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {featuredPackages.map(p => <PackageCard key={p.id} pkg={mapPackage(p)} />)}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Why Choose Us Banner */}
+      {/* CTA Banner */}
       <section className="section-padding bg-gradient-to-br from-secondary-800 via-primary to-primary relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-64 h-64 rounded-full border border-white" />
@@ -159,15 +176,11 @@ const Home = () => {
             Start Your Sri Lanka Adventure Today
           </h2>
           <p className="text-gray-300 font-inter text-lg max-w-xl mx-auto mb-10">
-            Join over 10,000 travelers who have discovered the magic of Sri Lanka with NIPUNGO. Your dream journey is just a click away.
+            Join over 10,000 travelers who have discovered the magic of Sri Lanka with NIPUNGO.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/packages" className="btn-accent text-base px-8 py-4">
-              Explore Packages
-            </Link>
-            <Link to="/contact" className="btn-secondary text-base px-8 py-4">
-              Talk to an Expert
-            </Link>
+            <Link to="/packages" className="btn-accent text-base px-8 py-4">Explore Packages</Link>
+            <Link to="/contact" className="btn-secondary text-base px-8 py-4">Talk to an Expert</Link>
           </div>
         </div>
       </section>

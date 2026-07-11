@@ -5,17 +5,13 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('nipungo_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
@@ -26,52 +22,62 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('nipungo_token');
+      localStorage.removeItem('nipungo_refresh');
       localStorage.removeItem('nipungo_user');
-      window.location.href = '/login';
+      window.location.href = '/welcome';
     }
     return Promise.reject(error);
   }
 );
 
 export const authAPI = {
-  register: (data) => api.post('/auth/register', data),
-  login:    (data) => api.post('/auth/login', data),
-  refresh:  (data) => api.post('/auth/refresh', data),
+  register: (data)       => api.post('/auth/register', data),
+  login:    (data)       => api.post('/auth/login', data),
+  refresh:  (data)       => api.post('/auth/refresh', data),
 };
 
 export const destinationsAPI = {
-  getAll:      (params) => api.get('/destinations', { params }),
-  getById:     (id)     => api.get(`/destinations/${id}`),
-  getFeatured: ()       => api.get('/destinations/featured'),
+  getAll:      (params)    => api.get('/destinations', { params }),
+  getById:     (id)        => api.get(`/destinations/${id}`),
+  getFeatured: ()          => api.get('/destinations/featured'),
+  create:      (data)      => api.post('/destinations', data),
+  update:      (id, data)  => api.put(`/destinations/${id}`, data),
+  delete:      (id)        => api.delete(`/destinations/${id}`),
 };
 
 export const hotelsAPI = {
-  getAll:      (params) => api.get('/hotels', { params }),
-  getById:     (id)     => api.get(`/hotels/${id}`),
-  getFeatured: ()       => api.get('/hotels/featured'),
+  getAll:      (params)    => api.get('/hotels', { params }),
+  getById:     (id)        => api.get(`/hotels/${id}`),
+  getFeatured: ()          => api.get('/hotels/featured'),
+  create:      (data)      => api.post('/hotels', data),
+  update:      (id, data)  => api.put(`/hotels/${id}`, data),
+  delete:      (id)        => api.delete(`/hotels/${id}`),
 };
 
 export const packagesAPI = {
-  getAll:      (params) => api.get('/packages', { params }),
-  getById:     (id)     => api.get(`/packages/${id}`),
-  getFeatured: ()       => api.get('/packages/featured'),
-  getPopular:  ()       => api.get('/packages/popular'),
+  getAll:      (params)    => api.get('/packages', { params }),
+  getById:     (id)        => api.get(`/packages/${id}`),
+  getFeatured: ()          => api.get('/packages/featured'),
+  getPopular:  ()          => api.get('/packages/popular'),
+  create:      (data)      => api.post('/packages', data),
+  update:      (id, data)  => api.put(`/packages/${id}`, data),
+  delete:      (id)        => api.delete(`/packages/${id}`),
 };
 
 export const bookingsAPI = {
-  getMyBookings: ()       => api.get('/bookings/my'),
-  getById:       (id)     => api.get(`/bookings/${id}`),
-  create:        (data)   => api.post('/bookings', data),
-  updateStatus:  (id, st) => api.put(`/bookings/${id}/status?status=${st}`),
+  getMyBookings: ()        => api.get('/bookings/my'),
+  getById:       (id)      => api.get(`/bookings/${id}`),
+  create:        (data)    => api.post('/bookings', data),
+  updateStatus:  (id, st)  => api.put(`/bookings/${id}/status?status=${st}`),
 };
 
 export const reviewsAPI = {
-  getByHotel: (hotelId) => api.get(`/reviews/hotel/${hotelId}`),
-  create:     (data)    => api.post('/reviews', data),
+  getByHotel: (hotelId)   => api.get(`/reviews/hotel/${hotelId}`),
+  create:     (data)       => api.post('/reviews', data),
 };
 
 export const contactAPI = {
-  sendMessage: (data) => api.post('/contact', data),
+  sendMessage: (data)     => api.post('/contact', data),
 };
 
 export default api;

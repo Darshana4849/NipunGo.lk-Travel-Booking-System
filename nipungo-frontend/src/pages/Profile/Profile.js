@@ -21,11 +21,9 @@ const Profile = () => {
   };
 
   const handleSave = () => {
-    // Update localStorage
     const updated = { ...user, firstName: form.firstName, lastName: form.lastName, phone: form.phone };
     localStorage.setItem('nipungo_user', JSON.stringify(updated));
     setSaved(true);
-    // Refresh navbar
     setTimeout(() => window.location.reload(), 800);
   };
 
@@ -129,9 +127,7 @@ const Profile = () => {
               <button
                 onClick={handleSave}
                 className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold font-poppins transition-all duration-200 ${
-                  saved
-                    ? 'bg-success text-white'
-                    : 'btn-primary'
+                  saved ? 'bg-success text-white' : 'btn-primary'
                 }`}
               >
                 {saved ? <><FiCheck /> Saved!</> : <><FiSave /> Save Changes</>}

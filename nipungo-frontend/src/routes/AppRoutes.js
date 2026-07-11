@@ -16,18 +16,36 @@ import Register from '../pages/Register/Register';
 import Contact from '../pages/Contact/Contact';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import MyBookings from '../pages/MyBookings/MyBookings';
-import NotFound from '../pages/NotFound/NotFound';
 import Profile from '../pages/Profile/Profile';
+import NotFound from '../pages/NotFound/NotFound';
 
+// Admin pages
+import AdminLayout from '../pages/Admin/AdminLayout';
+import AdminDashboard from '../pages/Admin/AdminDashboard';
+import AdminDestinations from '../pages/Admin/Destinations/AdminDestinations';
+import DestinationForm from '../pages/Admin/Destinations/DestinationForm';
+import AdminHotels from '../pages/Admin/Hotels/AdminHotels';
+import HotelForm from '../pages/Admin/Hotels/HotelForm';
+import AdminPackages from '../pages/Admin/Packages/AdminPackages';
+import PackageForm from '../pages/Admin/Packages/PackageForm';
 
-// Protected route — login නැත්නම් welcome page redirect
+// Protected — must be logged in
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem('nipungo_user');
   if (!user) return <Navigate to="/welcome" replace />;
   return children;
 };
 
-// Guest route — already logged in නම් home redirect
+// Admin only — must be ROLE_ADMIN
+const AdminRoute = ({ children }) => {
+  const userStr = localStorage.getItem('nipungo_user');
+  if (!userStr) return <Navigate to="/welcome" replace />;
+  const user = JSON.parse(userStr);
+  if (user.role !== 'ROLE_ADMIN') return <Navigate to="/home" replace />;
+  return children;
+};
+
+// Guest only — already logged in → home
 const GuestRoute = ({ children }) => {
   const user = localStorage.getItem('nipungo_user');
   if (user) return <Navigate to="/home" replace />;
@@ -35,68 +53,56 @@ const GuestRoute = ({ children }) => {
 };
 
 const AppRoutes = () => {
+  const isLoggedIn = Boolean(localStorage.getItem('nipungo_user'));
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* Root → welcome or home based on auth */}
+        {/* Root redirect */}
         <Route
           path="/"
-          element={
-            localStorage.getItem('nipungo_user')
-              ? <Navigate to="/home" replace />
-              : <Navigate to="/welcome" replace />
-          }
+          element={<Navigate to={isLoggedIn ? '/home' : '/welcome'} replace />}
         />
 
-        {/* Guest only pages — no layout */}
-        <Route
-          path="/welcome"
-          element={
-            <GuestRoute>
-              <Welcome />
-            </GuestRoute>
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            <GuestRoute>
-              <Login />
-            </GuestRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <GuestRoute>
-              <Register />
-            </GuestRoute>
-          }
-        />
-        <Route path="/profile" 
-        element={
-        <ProtectedRoute>
-          <Profile />
-          </ProtectedRoute>
-        } 
-        />
+        {/* Guest only — no Navbar/Footer */}
+        <Route path="/welcome" element={<GuestRoute><Welcome /></GuestRoute>} />
+        <Route path="/login"   element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
 
-        {/* Main layout pages */}
+        {/* Admin Panel — separate layout */}
+        <Route
+          path="/admin"
+          element={<AdminRoute><AdminLayout /></AdminRoute>}
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="destinations" element={<AdminDestinations />} />
+          <Route path="destinations/new" element={<DestinationForm />} />
+          <Route path="destinations/edit/:id" element={<DestinationForm />} />
+          <Route path="hotels" element={<AdminHotels />} />
+          <Route path="hotels/new" element={<HotelForm />} />
+          <Route path="hotels/edit/:id" element={<HotelForm />} />
+          <Route path="packages" element={<AdminPackages />} />
+          <Route path="packages/new" element={<PackageForm />} />
+          <Route path="packages/edit/:id" element={<PackageForm />} />
+        </Route>
+
+        {/* Main layout — Navbar + Footer */}
         <Route element={<MainLayout />}>
-          {/* Protected — must be logged in */}
-          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          {/* Protected pages */}
+          <Route path="/home"      element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+          <Route path="/bookings"  element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+          <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
-          {/* Public — anyone can view */}
-          <Route path="/about" element={<About />} />
-          <Route path="/destinations" element={<Destinations />} />
-          <Route path="/destinations/:id" element={<DestinationDetails />} />
-          <Route path="/hotels" element={<Hotels />} />
-          <Route path="/hotels/:id" element={<HotelDetails />} />
-          <Route path="/packages" element={<Packages />} />
-          <Route path="/packages/:id" element={<PackageDetails />} />
-          <Route path="/contact" element={<Contact />} />
+          {/* Public pages */}
+          <Route path="/about"               element={<About />} />
+          <Route path="/destinations"        element={<Destinations />} />
+          <Route path="/destinations/:id"    element={<DestinationDetails />} />
+          <Route path="/hotels"              element={<Hotels />} />
+          <Route path="/hotels/:id"          element={<HotelDetails />} />
+          <Route path="/packages"            element={<Packages />} />
+          <Route path="/packages/:id"        element={<PackageDetails />} />
+          <Route path="/contact"             element={<Contact />} />
 
           <Route path="*" element={<NotFound />} />
         </Route>
